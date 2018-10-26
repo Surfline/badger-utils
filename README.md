@@ -1,6 +1,22 @@
-# Badger Utils
+# Badger Utils [![GoDoc](https://godoc.org/github.com/Surfline/badgerutils?status.svg)](https://godoc.org/github.com/Surfline/badgerutils) [![Go Report Card](https://goreportcard.com/badge/github.com/Surfline/badgerutils)](https://goreportcard.com/report/github.com/Surfline/badgerutils)
 
 Go package with utilities for interacting with [Badger](https://github.com/dgraph-io/badger).
+
+## Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Getting Started](#getting-started)
+  - [Stream Stdin to Badger](#stream-stdin-to-badger)
+    - [Example](#example)
+- [Development](#development)
+  - [Dependency Management](#dependency-management)
+  - [Format Code](#format-code)
+  - [Unit Tests](#unit-tests)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Getting Started
 
