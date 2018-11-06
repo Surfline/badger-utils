@@ -1,4 +1,3 @@
-// Package badgerutils provides functions for interacting with Badger.
 package badgerutils
 
 import (
@@ -8,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -75,6 +75,10 @@ func writeBatch(kvs []keyValue, db *badger.DB, cherr chan error, done func(int32
 // lineToKeyed function parameter defines how stdin is translated to a value and how to define a key
 // from that value.
 func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyed func(string) (Keyed, error)) error {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return err
+	}
+
 	// Open Badger database from directory
 	opts := badger.DefaultOptions
 	opts.Dir = dir

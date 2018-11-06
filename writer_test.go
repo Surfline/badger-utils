@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
@@ -84,13 +85,15 @@ func TestWriteStream(t *testing.T) {
 	require.Nil(t, err)
 	defer os.RemoveAll(tmpDir)
 
+	dbPath := path.Join(tmpDir, "path", "to", "db")
+
 	reader := strings.NewReader(`field11,field12,field13
 field21,field22,field23
 field31,field32,field33`)
-	err = WriteStream(reader, tmpDir, 2, csvToSampleRecord)
+	err = WriteStream(reader, dbPath, 2, csvToSampleRecord)
 	require.Nil(t, err)
 
-	writtenSampleRecords, err := readDB(tmpDir)
+	writtenSampleRecords, err := readDB(dbPath)
 	require.Nil(t, err)
 	require.Equal(t, 3, len(writtenSampleRecords))
 	require.EqualValues(t, writtenSampleRecords[0], sampleRecord{"field11", "field12", "field13"})
