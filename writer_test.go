@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"github.com/dgraph-io/badger"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/dgraph-io/badger"
+	"github.com/stretchr/testify/require"
 )
 
 type sampleRecord struct {
@@ -76,7 +77,7 @@ func readDB(dir string) ([]sampleRecord, error) {
 	return sampleRecords, nil
 }
 
-func TestWriteInput(t *testing.T) {
+func TestWriteStream(t *testing.T) {
 	dir, err := os.Getwd()
 	require.Nil(t, err)
 	tmpDir, err := ioutil.TempDir(dir, "temp")
@@ -86,7 +87,7 @@ func TestWriteInput(t *testing.T) {
 	reader := strings.NewReader(`field11,field12,field13
 field21,field22,field23
 field31,field32,field33`)
-	err = writeInput(reader, tmpDir, 2, csvToSampleRecord)
+	err = WriteStream(reader, tmpDir, 2, csvToSampleRecord)
 	require.Nil(t, err)
 
 	writtenSampleRecords, err := readDB(tmpDir)

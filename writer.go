@@ -1,23 +1,22 @@
-// Package badgerutils provides functions for interacting with the underlying database.
+// Package badgerutils provides functions for interacting with Badger.
 package badgerutils
 
 import (
 	"bufio"
 	"bytes"
 	"encoding/gob"
-	"errors"
-	"flag"
 	"fmt"
-	"github.com/dgraph-io/badger"
 	"io"
 	"log"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/dgraph-io/badger"
 )
 
+// Keyed interface defines a Key method for defining a key from a struct.
 type Keyed interface {
 	Key() string
 }
@@ -72,10 +71,10 @@ func writeBatch(kvs []keyValue, db *badger.DB, cherr chan error, done func(int32
 	})
 }
 
-func writeInput(reader io.Reader, dir string, batchSize int, lineToKeyed func(string) (Keyed, error)) error {
-	log.Printf("Directory: %v", dir)
-	log.Printf("Batch Size: %v", batchSize)
-
+// WriteStream translates io.Reader stream into key/value pairs that are written into the Badger.
+// lineToKeyed function parameter defines how stdin is translated to a value and how to define a key
+// from that value.
+func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyed func(string) (Keyed, error)) error {
 	// Open Badger database from directory
 	opts := badger.DefaultOptions
 	opts.Dir = dir
@@ -100,7 +99,7 @@ func writeInput(reader io.Reader, dir string, batchSize int, lineToKeyed func(st
 	kvBatch := make([]keyValue, 0)
 	cherr := make(chan error)
 
-	// Read from stdin and write key/values in batches
+	// Read from stream and write key/values in batches
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		kv, err := stringToKeyValue(scanner.Text(), lineToKeyed)
@@ -121,7 +120,7 @@ func writeInput(reader io.Reader, dir string, batchSize int, lineToKeyed func(st
 		writeBatch(kvBatch, db, cherr, done)
 	}
 
-	// Read and handle errors streaming from stdin
+	// Read and handle errors from stream
 	if err = scanner.Err(); err != nil {
 		return err
 	}
@@ -143,19 +142,4 @@ func writeInput(reader io.Reader, dir string, batchSize int, lineToKeyed func(st
 	elapsed := end.Sub(start)
 	log.Printf("Inserted %v records in %v", kvCount.get(), elapsed)
 	return nil
-}
-
-// WriteStdin translates stdin into key/value pairs that are written into the Badger.
-// lineToKeyed function parameter defines how stdin is translated to a value and how to define a key
-// from that value.
-func WriteStdin(lineToKeyed func(string) (Keyed, error)) error {
-	dir := flag.String("dir", "", "Directory to save DB files")
-	batchSize := flag.Int("batch-size", 1000, "Number of records to write per transaction")
-	flag.Parse()
-
-	if *dir == "" {
-		return errors.New("dir flag is required")
-	}
-
-	return writeInput(os.Stdin, *dir, *batchSize, lineToKeyed)
 }

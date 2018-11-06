@@ -9,7 +9,7 @@ Go package with utilities for interacting with [Badger](https://github.com/dgrap
 
 
 - [Getting Started](#getting-started)
-  - [Stream Stdin to Badger](#stream-stdin-to-badger)
+  - [IO Stream to Badger](#io-stream-to-badger)
     - [Example](#example)
 - [Development](#development)
   - [Dependency Management](#dependency-management)
@@ -20,21 +20,27 @@ Go package with utilities for interacting with [Badger](https://github.com/dgrap
 
 ## Getting Started
 
-### Stream Stdin to Badger
+### IO Stream to Badger
 
-To create a CLI to stream stdin into Badger, use `badgerutils.WriteStdin`. It takes a function `lineToKeyed` as a parameter, which converts a `string` into a struct that implements the `Keyed` interface.
+To stream data Badger, use `badgerutils.WriteStream`.
 
 #### Example
 
+Creates a CLI tool that streams data from stdin.
+
 ```Go
-// examples/writer.go
+// examples/writer_cli.go
 package main
 
 import (
+	"errors"
+	"flag"
 	"fmt"
-	"github.com/Surfline/badgerutils"
 	"log"
+	"os"
 	"strings"
+
+	"github.com/Surfline/badgerutils"
 )
 
 type sampleRecord struct {
@@ -53,7 +59,18 @@ func lineToKeyed(line string) (badgerutils.Keyed, error) {
 }
 
 func main() {
-	if err := badgerutils.WriteStdin(lineToKeyed); err != nil {
+	dir := flag.String("dir", "", "Directory to save DB files")
+	batchSize := flag.Int("batch-size", 1000, "Number of records to write per transaction")
+	flag.Parse()
+
+	if *dir == "" {
+		log.Fatal(errors.New("dir flag is required"))
+	}
+
+	log.Printf("Directory: %v", *dir)
+	log.Printf("Batch Size: %v", *batchSize)
+
+	if err := badgerutils.WriteStream(os.Stdin, *dir, *batchSize, lineToKeyed); err != nil {
 		log.Fatal(err)
 	}
 }
