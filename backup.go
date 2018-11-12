@@ -18,11 +18,11 @@ func CreateBackup(dir, backupPath, backupName string) (uint64, error) {
 	opts.ValueDir = dir
 	db, err := badger.Open(opts)
 	if err != nil {
-		return 0, err
+		return version, err
 	}
 	defer db.Close()
 
-	if err := os.MkdirAll(backupPath, os.ModePerm); err != nil {
+	if err = os.MkdirAll(backupPath, os.ModePerm); err != nil {
 		return version, err
 	}
 
