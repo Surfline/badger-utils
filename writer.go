@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger/options"
 )
 
 // Keyed interface defines a Key method for defining a key from a struct.
@@ -80,13 +79,7 @@ func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyed func(s
 		return err
 	}
 
-	// Open Badger database from directory
-	opts := badger.DefaultOptions
-	opts.ValueLogLoadingMode = options.FileIO
-	opts.TableLoadingMode = options.FileIO
-	opts.Dir = dir
-	opts.ValueDir = dir
-	db, err := badger.Open(opts)
+	db, err := openDB(dir)
 	if err != nil {
 		return err
 	}

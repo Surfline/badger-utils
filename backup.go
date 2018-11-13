@@ -5,18 +5,13 @@ import (
 	"os"
 	"path"
 	"time"
-
-	"github.com/dgraph-io/badger"
 )
 
 // CreateBackup creates a backup from a Badger database directory.
 func CreateBackup(dir, backupPath, backupName string) (uint64, error) {
 	var version uint64
 
-	opts := badger.DefaultOptions
-	opts.Dir = dir
-	opts.ValueDir = dir
-	db, err := badger.Open(opts)
+	db, err := openDB(dir)
 	if err != nil {
 		return version, err
 	}

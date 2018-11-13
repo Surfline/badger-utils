@@ -7,15 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dgraph-io/badger"
 	"github.com/stretchr/testify/require"
 )
 
 func restoreBackup(dir, backupFilePath string) error {
-	opts := badger.DefaultOptions
-	opts.Dir = dir
-	opts.ValueDir = dir
-	db, err := badger.Open(opts)
+	db, err := openDB(dir)
 	if err != nil {
 		return err
 	}
