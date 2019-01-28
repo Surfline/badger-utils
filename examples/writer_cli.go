@@ -17,13 +17,16 @@ type sampleRecord struct {
 	Field3 string
 }
 
-func (r sampleRecord) Key() string {
-	return fmt.Sprintf("%v,%v,%v", r.Field1, r.Field2, r.Field3)
-}
-
-func lineToKeyed(line string) (badgerutils.Keyed, error) {
+func lineToKeyValue(line string) (*badgerutils.KeyValue, error) {
 	values := strings.Split(line, ",")
-	return sampleRecord{values[0], values[1], values[2]}, nil
+	if len(values) < 3 {
+		return nil, fmt.Errorf("%v has less than 3 values", line)
+	}
+
+	return &badgerutils.KeyValue{
+		Key: line,
+		Value: sampleRecord{values[0], values[1], values[2]},
+	}, nil
 }
 
 func main() {
@@ -38,7 +41,7 @@ func main() {
 	log.Printf("Directory: %v", *dir)
 	log.Printf("Batch Size: %v", *batchSize)
 
-	if err := badgerutils.WriteStream(os.Stdin, *dir, *batchSize, lineToKeyed); err != nil {
+	if err := badgerutils.WriteStream(os.Stdin, *dir, *batchSize, lineToKeyValue); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -16,12 +16,13 @@ import (
 	"github.com/dgraph-io/badger"
 )
 
-// Keyed interface defines a Key method for defining a key from a struct.
-type Keyed interface {
-	Key() string
+// KeyValue struct defines a Key and a Value empty interface to be translated into a record.
+type KeyValue struct {
+	Key string
+	Value interface{}
 }
 
-type keyValue struct {
+type kvBytes struct {
 	Key   []byte
 	Value []byte
 }
@@ -36,24 +37,24 @@ func (c *count32) get() int32 {
 	return atomic.LoadInt32((*int32)(c))
 }
 
-func stringToKeyValue(str string, lineToKeyed func(string) (Keyed, error)) (*keyValue, error) {
-	record, err := lineToKeyed(str)
+func stringToKVBytes(str string, lineToKeyValue func(string) (*KeyValue, error)) (*kvBytes, error) {
+	record, err := lineToKeyValue(str)
 	if err != nil {
 		return nil, err
 	}
 
 	buf := &bytes.Buffer{}
-	if err = gob.NewEncoder(buf).Encode(record); err != nil {
+	if err = gob.NewEncoder(buf).Encode(record.Value); err != nil {
 		return nil, err
 	}
 
-	return &keyValue{
-		Key:   []byte(record.Key()),
+	return &kvBytes{
+		Key:   []byte(record.Key),
 		Value: buf.Bytes(),
 	}, nil
 }
 
-func writeBatch(kvs []keyValue, db *badger.DB, cherr chan error, done func(int32)) {
+func writeBatch(kvs []kvBytes, db *badger.DB, cherr chan error, done func(int32)) {
 	txn := db.NewTransaction(true)
 	defer txn.Discard()
 
@@ -72,9 +73,9 @@ func writeBatch(kvs []keyValue, db *badger.DB, cherr chan error, done func(int32
 }
 
 // WriteStream translates io.Reader stream into key/value pairs that are written into the Badger.
-// lineToKeyed function parameter defines how stdin is translated to a value and how to define a key
+// lineToKeyValue function parameter defines how stdin is translated to a value and how to define a key
 // from that value.
-func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyed func(string) (Keyed, error)) error {
+func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyValue func(string) (*KeyValue, error)) error {
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return err
 	}
@@ -96,13 +97,13 @@ func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyed func(s
 		wg.Done()
 	}
 
-	kvBatch := make([]keyValue, 0)
+	kvBatch := make([]kvBytes, 0)
 	cherr := make(chan error)
 
 	// Read from stream and write key/values in batches
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
-		kv, err := stringToKeyValue(scanner.Text(), lineToKeyed)
+		kv, err := stringToKVBytes(scanner.Text(), lineToKeyValue)
 		if err != nil {
 			return err
 		}
@@ -110,7 +111,7 @@ func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyed func(s
 		if len(kvBatch) == batchSize {
 			wg.Add(1)
 			go writeBatch(kvBatch, db, cherr, done)
-			kvBatch = make([]keyValue, 0)
+			kvBatch = make([]kvBytes, 0)
 		}
 	}
 

@@ -15,13 +15,16 @@ type sampleRecord struct {
 	Field3 string
 }
 
-func (r sampleRecord) Key() string {
-	return fmt.Sprintf("%v,%v,%v", r.Field1, r.Field2, r.Field3)
-}
-
-func csvToSampleRecord(line string) (Keyed, error) {
+func csvToSampleRecord(line string) (*KeyValue, error) {
 	values := strings.Split(line, ",")
-	return sampleRecord{values[0], values[1], values[2]}, nil
+	if len(values) < 3 {
+		return nil, fmt.Errorf("%v has less than 3 values", line)
+	}
+
+	return &KeyValue{
+		Key: line,
+		Value: sampleRecord{values[0], values[1], values[2]},
+	}, nil
 }
 
 func readDB(dir string) ([]sampleRecord, error) {
@@ -31,8 +34,8 @@ func readDB(dir string) ([]sampleRecord, error) {
 	}
 	defer db.Close()
 
-	chkv, cherr := make(chan keyValue), make(chan error)
-	go func(chan keyValue, chan error) {
+	chkv, cherr := make(chan kvBytes), make(chan error)
+	go func(chan kvBytes, chan error) {
 		err := db.View(func(txn *badger.Txn) error {
 			opts := badger.DefaultIteratorOptions
 			it := txn.NewIterator(opts)
@@ -44,7 +47,7 @@ func readDB(dir string) ([]sampleRecord, error) {
 				if err != nil {
 					return err
 				}
-				kv := keyValue{key, value}
+				kv := kvBytes{key, value}
 				chkv <- kv
 			}
 			close(chkv)
