@@ -24,7 +24,7 @@ func lineToKeyValue(line string) (*badgerutils.KeyValue, error) {
 	}
 
 	return &badgerutils.KeyValue{
-		Key: line,
+		Key:   line,
 		Value: sampleRecord{values[0], values[1], values[2]},
 	}, nil
 }

@@ -18,7 +18,7 @@ import (
 
 // KeyValue struct defines a Key and a Value empty interface to be translated into a record.
 type KeyValue struct {
-	Key string
+	Key   interface{}
 	Value interface{}
 }
 
@@ -38,19 +38,24 @@ func (c *count32) get() int32 {
 }
 
 func stringToKVBytes(str string, lineToKeyValue func(string) (*KeyValue, error)) (*kvBytes, error) {
-	record, err := lineToKeyValue(str)
-	if err != nil {
-		return nil, err
+	record, parseErr := lineToKeyValue(str)
+	if parseErr != nil {
+		return nil, parseErr
 	}
 
-	buf := &bytes.Buffer{}
-	if err = gob.NewEncoder(buf).Encode(record.Value); err != nil {
-		return nil, err
+	keyBuf := &bytes.Buffer{}
+	if keyErr := gob.NewEncoder(keyBuf).Encode(record.Key); keyErr != nil {
+		return nil, keyErr
+	}
+
+	valBuf := &bytes.Buffer{}
+	if valErr := gob.NewEncoder(valBuf).Encode(record.Value); valErr != nil {
+		return nil, valErr
 	}
 
 	return &kvBytes{
-		Key:   []byte(record.Key),
-		Value: buf.Bytes(),
+		Key:   keyBuf.Bytes(),
+		Value: valBuf.Bytes(),
 	}, nil
 }
 
@@ -76,13 +81,13 @@ func writeBatch(kvs []kvBytes, db *badger.DB, cherr chan error, done func(int32)
 // lineToKeyValue function parameter defines how stdin is translated to a value and how to define a key
 // from that value.
 func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyValue func(string) (*KeyValue, error)) error {
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return err
+	if mkdirErr := os.MkdirAll(dir, os.ModePerm); mkdirErr != nil {
+		return mkdirErr
 	}
 
-	db, err := openDB(dir)
-	if err != nil {
-		return err
+	db, dbErr := openDB(dir)
+	if dbErr != nil {
+		return dbErr
 	}
 	defer db.Close()
 
@@ -122,8 +127,8 @@ func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyValue fun
 	}
 
 	// Read and handle errors from stream
-	if err = scanner.Err(); err != nil {
-		return err
+	if streamErr := scanner.Err(); streamErr != nil {
+		return streamErr
 	}
 
 	wg.Wait()

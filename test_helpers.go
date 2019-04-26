@@ -22,7 +22,7 @@ func csvToSampleRecord(line string) (*KeyValue, error) {
 	}
 
 	return &KeyValue{
-		Key: line,
+		Key:   line,
 		Value: sampleRecord{values[0], values[1], values[2]},
 	}, nil
 }
