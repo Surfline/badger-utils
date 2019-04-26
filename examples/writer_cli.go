@@ -14,18 +14,22 @@ import (
 type sampleValues struct {
 	Field1 string
 	Field2 string
-	Field3 string
 }
 
-func lineToKeyValue(line string) (*badgerutils.KeyValue, error) {
+type sampleRecord struct {
+	Key   []string
+	Value sampleValues
+}
+
+func csvToKeyValue(line string) (*badgerutils.KeyValue, error) {
 	values := strings.Split(line, ",")
-	if len(values) < 3 {
-		return nil, fmt.Errorf("%v has less than 3 values", line)
+	if len(values) < 4 {
+		return nil, fmt.Errorf("%v has less than 4 values", line)
 	}
 
 	return &badgerutils.KeyValue{
-		Key:   line,
-		Value: sampleValues{values[0], values[1], values[2]},
+		Key:   []interface{}{values[0], values[1]},
+		Value: sampleValues{values[2], values[3]},
 	}, nil
 }
 
@@ -41,7 +45,7 @@ func main() {
 	log.Printf("Directory: %v", *dir)
 	log.Printf("Batch Size: %v", *batchSize)
 
-	if err := badgerutils.WriteStream(os.Stdin, *dir, *batchSize, lineToKeyValue); err != nil {
+	if err := badgerutils.WriteStream(os.Stdin, *dir, *batchSize, csvToKeyValue); err != nil {
 		log.Fatal(err)
 	}
 }

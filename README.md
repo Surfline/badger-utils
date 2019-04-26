@@ -46,18 +46,22 @@ import (
 type sampleValues struct {
 	Field1 string
 	Field2 string
-	Field3 string
 }
 
-func lineToKeyValue(line string) (*badgerutils.KeyValue, error) {
+type sampleRecord struct {
+	Key   []string
+	Value sampleValues
+}
+
+func csvToKeyValue(line string) (*badgerutils.KeyValue, error) {
 	values := strings.Split(line, ",")
-	if len(values) < 3 {
-		return nil, fmt.Errorf("%v has less than 3 values", line)
+	if len(values) < 4 {
+		return nil, fmt.Errorf("%v has less than 4 values", line)
 	}
 
 	return &badgerutils.KeyValue{
-		Key: line,
-		Value: sampleValues{values[0], values[1], values[2]},
+		Key:   []interface{}{values[0], values[1]},
+		Value: sampleValues{values[2], values[3]},
 	}, nil
 }
 
@@ -73,7 +77,7 @@ func main() {
 	log.Printf("Directory: %v", *dir)
 	log.Printf("Batch Size: %v", *batchSize)
 
-	if err := badgerutils.WriteStream(os.Stdin, *dir, *batchSize, lineToKeyValue); err != nil {
+	if err := badgerutils.WriteStream(os.Stdin, *dir, *batchSize, csvToKeyValue); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -87,7 +91,7 @@ The code above can be called with the following flags:
 For example:
 
 ```sh
-$ for i in {1..10}; do echo "field${i}1,field${i}2,field${i}3"; done | go run main.go -dir=temp -batch-size=1
+$ for i in {1..10}; do echo "field${i}1,field${i}2,field${i}3,field${i}4"; done | go run main.go -dir=temp -batch-size=1
 Directory: temp
 Batch Size: 3
 ...
