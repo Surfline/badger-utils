@@ -9,21 +9,26 @@ import (
 	"github.com/dgraph-io/badger"
 )
 
-type sampleRecord struct {
+type sampleValues struct {
 	Field1 string
 	Field2 string
 	Field3 string
 }
 
-func csvToSampleRecord(line string) (*KeyValue, error) {
+type sampleRecord struct {
+	Key   []string
+	Value sampleValues
+}
+
+func csvToKeyValue(line string) (*KeyValue, error) {
 	values := strings.Split(line, ",")
 	if len(values) < 3 {
 		return nil, fmt.Errorf("%v has less than 3 values", line)
 	}
 
 	return &KeyValue{
-		Key:   line,
-		Value: sampleRecord{values[0], values[1], values[2]},
+		Key:   values,
+		Value: sampleValues{values[0], values[1], values[2]},
 	}, nil
 }
 
@@ -58,12 +63,19 @@ func readDB(dir string) ([]sampleRecord, error) {
 
 	sampleRecords := make([]sampleRecord, 0)
 	for kv := range chkv {
-		var sr sampleRecord
-		buf := bytes.NewReader(kv.Value)
-		if err := gob.NewDecoder(buf).Decode(&sr); err != nil {
-			return nil, err
+		key := make([]string, 3)
+		keyBuf := bytes.NewReader(kv.Key)
+		if keyErr := gob.NewDecoder(keyBuf).Decode(&key); keyErr != nil {
+			return nil, keyErr
 		}
-		sampleRecords = append(sampleRecords, sr)
+
+		val := new(sampleValues)
+		valBuf := bytes.NewReader(kv.Value)
+		if valErr := gob.NewDecoder(valBuf).Decode(&val); valErr != nil {
+			return nil, valErr
+		}
+
+		sampleRecords = append(sampleRecords, sampleRecord{Key: key, Value: *val})
 	}
 
 	if err := <-cherr; err != nil {

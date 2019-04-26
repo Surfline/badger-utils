@@ -11,7 +11,7 @@ import (
 	"github.com/Surfline/badgerutils"
 )
 
-type sampleRecord struct {
+type sampleValues struct {
 	Field1 string
 	Field2 string
 	Field3 string
@@ -25,7 +25,7 @@ func lineToKeyValue(line string) (*badgerutils.KeyValue, error) {
 
 	return &badgerutils.KeyValue{
 		Key:   line,
-		Value: sampleRecord{values[0], values[1], values[2]},
+		Value: sampleValues{values[0], values[1], values[2]},
 	}, nil
 }
 
