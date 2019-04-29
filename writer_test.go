@@ -19,9 +19,9 @@ func TestWriteStream(t *testing.T) {
 
 	dbPath := path.Join(tmpDir, "path", "to", "db")
 
-	reader := strings.NewReader(`field11,field12,field13
-field21,field22,field23
-field31,field32,field33`)
+	reader := strings.NewReader(`key1:value1
+key2:value2
+key3:value3`)
 	err = WriteStream(reader, dbPath, 2, csvToKeyValue)
 	require.Nil(t, err)
 
@@ -29,15 +29,15 @@ field31,field32,field33`)
 	require.Nil(t, err)
 	require.Equal(t, 3, len(writtenSampleRecords))
 	require.EqualValues(t, writtenSampleRecords[0], sampleRecord{
-		Key:   []string{"field11", "field12", "field13"},
-		Value: sampleValues{"field11", "field12", "field13"},
+		Key:   "key1",
+		Value: "value1",
 	})
 	require.EqualValues(t, writtenSampleRecords[1], sampleRecord{
-		Key:   []string{"field21", "field22", "field23"},
-		Value: sampleValues{"field21", "field22", "field23"},
+		Key:   "key2",
+		Value: "value2",
 	})
 	require.EqualValues(t, writtenSampleRecords[2], sampleRecord{
-		Key:   []string{"field31", "field32", "field33"},
-		Value: sampleValues{"field31", "field32", "field33"},
+		Key:   "key3",
+		Value: "value3",
 	})
 }

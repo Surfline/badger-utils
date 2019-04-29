@@ -2,8 +2,6 @@ package badgerutils
 
 import (
 	"bufio"
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"io"
 	"log"
@@ -18,11 +16,6 @@ import (
 
 // KeyValue struct defines a Key and a Value empty interface to be translated into a record.
 type KeyValue struct {
-	Key   interface{}
-	Value interface{}
-}
-
-type kvBytes struct {
 	Key   []byte
 	Value []byte
 }
@@ -37,29 +30,7 @@ func (c *count32) get() int32 {
 	return atomic.LoadInt32((*int32)(c))
 }
 
-func stringToKVBytes(str string, lineToKeyValue func(string) (*KeyValue, error)) (*kvBytes, error) {
-	record, parseErr := lineToKeyValue(str)
-	if parseErr != nil {
-		return nil, parseErr
-	}
-
-	keyBuf := &bytes.Buffer{}
-	if keyErr := gob.NewEncoder(keyBuf).Encode(record.Key); keyErr != nil {
-		return nil, keyErr
-	}
-
-	valBuf := &bytes.Buffer{}
-	if valErr := gob.NewEncoder(valBuf).Encode(record.Value); valErr != nil {
-		return nil, valErr
-	}
-
-	return &kvBytes{
-		Key:   keyBuf.Bytes(),
-		Value: valBuf.Bytes(),
-	}, nil
-}
-
-func writeBatch(kvs []kvBytes, db *badger.DB, cherr chan error, done func(int32)) {
+func writeBatch(kvs []KeyValue, db *badger.DB, cherr chan error, done func(int32)) {
 	txn := db.NewTransaction(true)
 	defer txn.Discard()
 
@@ -102,13 +73,13 @@ func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyValue fun
 		wg.Done()
 	}
 
-	kvBatch := make([]kvBytes, 0)
+	kvBatch := make([]KeyValue, 0)
 	cherr := make(chan error)
 
 	// Read from stream and write key/values in batches
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
-		kv, err := stringToKVBytes(scanner.Text(), lineToKeyValue)
+		kv, err := lineToKeyValue(scanner.Text())
 		if err != nil {
 			return err
 		}
@@ -116,7 +87,7 @@ func WriteStream(reader io.Reader, dir string, batchSize int, lineToKeyValue fun
 		if len(kvBatch) == batchSize {
 			wg.Add(1)
 			go writeBatch(kvBatch, db, cherr, done)
-			kvBatch = make([]kvBytes, 0)
+			kvBatch = make([]KeyValue, 0)
 		}
 	}
 

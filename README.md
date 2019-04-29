@@ -43,25 +43,20 @@ import (
 	"github.com/Surfline/badgerutils"
 )
 
-type sampleValues struct {
-	Field1 string
-	Field2 string
-}
-
 type sampleRecord struct {
-	Key   []string
-	Value sampleValues
+	Key   string
+	Value string
 }
 
 func csvToKeyValue(line string) (*badgerutils.KeyValue, error) {
-	values := strings.Split(line, ",")
-	if len(values) < 4 {
-		return nil, fmt.Errorf("%v has less than 4 values", line)
+	values := strings.Split(line, ":")
+	if len(values) < 2 {
+		return nil, fmt.Errorf("%v has less than 2 values", line)
 	}
 
 	return &badgerutils.KeyValue{
-		Key:   []interface{}{values[0], values[1]},
-		Value: sampleValues{values[2], values[3]},
+		Key:   []byte(kv[0]),
+		Value: []byte(kv[1]),
 	}, nil
 }
 

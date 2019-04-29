@@ -1,34 +1,26 @@
 package badgerutils
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"strings"
 
 	"github.com/dgraph-io/badger"
 )
 
-type sampleValues struct {
-	Field1 string
-	Field2 string
-	Field3 string
-}
-
 type sampleRecord struct {
-	Key   []string
-	Value sampleValues
+	Key   string
+	Value string
 }
 
 func csvToKeyValue(line string) (*KeyValue, error) {
-	values := strings.Split(line, ",")
-	if len(values) < 3 {
-		return nil, fmt.Errorf("%v has less than 3 values", line)
+	kv := strings.Split(line, ":")
+	if len(kv) < 2 {
+		return nil, fmt.Errorf("%v has less than 2 kv", line)
 	}
 
 	return &KeyValue{
-		Key:   values,
-		Value: sampleValues{values[0], values[1], values[2]},
+		Key:   []byte(kv[0]),
+		Value: []byte(kv[1]),
 	}, nil
 }
 
@@ -39,8 +31,8 @@ func readDB(dir string) ([]sampleRecord, error) {
 	}
 	defer db.Close()
 
-	chkv, cherr := make(chan kvBytes), make(chan error)
-	go func(chan kvBytes, chan error) {
+	chkv, cherr := make(chan KeyValue), make(chan error)
+	go func(chan KeyValue, chan error) {
 		err := db.View(func(txn *badger.Txn) error {
 			opts := badger.DefaultIteratorOptions
 			it := txn.NewIterator(opts)
@@ -52,7 +44,7 @@ func readDB(dir string) ([]sampleRecord, error) {
 				if err != nil {
 					return err
 				}
-				kv := kvBytes{key, value}
+				kv := KeyValue{Key: key, Value: value}
 				chkv <- kv
 			}
 			close(chkv)
@@ -63,19 +55,10 @@ func readDB(dir string) ([]sampleRecord, error) {
 
 	sampleRecords := make([]sampleRecord, 0)
 	for kv := range chkv {
-		key := make([]string, 3)
-		keyBuf := bytes.NewReader(kv.Key)
-		if keyErr := gob.NewDecoder(keyBuf).Decode(&key); keyErr != nil {
-			return nil, keyErr
-		}
-
-		val := new(sampleValues)
-		valBuf := bytes.NewReader(kv.Value)
-		if valErr := gob.NewDecoder(valBuf).Decode(&val); valErr != nil {
-			return nil, valErr
-		}
-
-		sampleRecords = append(sampleRecords, sampleRecord{Key: key, Value: *val})
+		sampleRecords = append(sampleRecords, sampleRecord{
+			Key:   string(kv.Key),
+			Value: string(kv.Value),
+		})
 	}
 
 	if err := <-cherr; err != nil {
